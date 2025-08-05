@@ -4,7 +4,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import styles from './page.module.css';
 
-const LoginContent = () => {
+const LoginForm = ({ redirectTo }) => {
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -13,8 +13,6 @@ const LoginContent = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const redirectTo = searchParams.get('redirect') || '/add-new-project';
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -124,6 +122,13 @@ const LoginContent = () => {
       </div>
     </div>
   );
+};
+
+const LoginContent = () => {
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams.get('redirect') || '/add-new-project';
+
+  return <LoginForm redirectTo={redirectTo} />;
 };
 
 const Login = () => {
