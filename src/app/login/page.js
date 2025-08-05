@@ -1,10 +1,10 @@
 "use client"
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import styles from './page.module.css';
 
-const Login = () => {
+const LoginContent = () => {
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -123,6 +123,23 @@ const Login = () => {
         </div>
       </div>
     </div>
+  );
+};
+
+const Login = () => {
+  return (
+    <Suspense fallback={
+      <div className={styles.loginContainer}>
+        <div className={styles.loginForm}>
+          <div className={styles.formHeader}>
+            <h1>Admin Login</h1>
+            <p>Loading...</p>
+          </div>
+        </div>
+      </div>
+    }>
+      <LoginContent />
+    </Suspense>
   );
 };
 
