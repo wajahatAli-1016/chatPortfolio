@@ -1,7 +1,7 @@
 "use client"
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import styles from'./page.module.css';
+import styles from './page.module.css';
 import async from '../../public/async.png'
 import mind from '../../public/mind.png'
 import bookify from '../../public/bookify.png'
@@ -9,6 +9,10 @@ import ChatbotModal from './components/ChatbotModal';
 
 const Home = () => {
   const [isChatbotOpen, setIsChatbotOpen] = useState(false);
+  const [projects, setProjects] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [currentSlide, setCurrentSlide] = useState(0);
 
   const openChatbot = () => {
     setIsChatbotOpen(true);
@@ -17,6 +21,66 @@ const Home = () => {
   const closeChatbot = () => {
     setIsChatbotOpen(false);
   };
+
+  // Fetch projects from database
+  const fetchProjects = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await fetch('/api/project');
+      const data = await response.json();
+      
+      if (data.success) {
+        setProjects(data.data);
+      } else {
+        setError('Failed to fetch projects');
+      }
+    } catch (error) {
+      console.error('Error fetching projects:', error);
+      setError('Failed to fetch projects');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchProjects();
+  }, []);
+
+  // Refresh projects (can be called after adding a new project)
+  const refreshProjects = () => {
+    fetchProjects();
+  };
+
+  // Slider navigation functions
+  const nextSlide = () => {
+    setCurrentSlide((prev) => 
+      prev + 3 >= projects.length ? 0 : prev + 3
+    );
+  };
+
+  const prevSlide = () => {
+    setCurrentSlide((prev) => 
+      prev - 3 < 0 ? Math.max(0, projects.length - 3) : prev - 3
+    );
+  };
+
+  const goToSlide = (index) => {
+    setCurrentSlide(index);
+  };
+
+  // Get current projects to display (3 at a time)
+  const getCurrentProjects = () => {
+    const currentProjects = projects.slice(currentSlide, currentSlide + 3);
+    // Pad with empty objects to maintain 3 columns
+    while (currentProjects.length < 3) {
+      currentProjects.push(null);
+    }
+    return currentProjects;
+  };
+
+  // Calculate total slides
+  const totalSlides = Math.ceil(projects.length / 3);
   return (
     <>
     <header className={styles.navbar}>
@@ -179,52 +243,145 @@ const Home = () => {
             Here are some of my recent projects that showcase my skills in full-stack development, 
             UI/UX design, and problem-solving abilities.
           </p>
-          <div className={styles.projectGrid}>
-            <Link href="https://async-standups-loux.vercel.app/" className={styles.projectCard}>
-            <div>
-              <img src={async.src} alt="Async Standups" />
-              <div className={styles.projectContent}>
-                <h4>Async Standups</h4>
-                <p>Keep your team in sync without syncing your schedules. A modern solution for remote team coordination.</p>
-                <div className={styles.projectTech}>
-                  <span>Next.js</span>
-                  <span>MongoDB</span>
-                  <span>Tailwind CSS</span>
-                  <span>Auth.js</span>
+          
+          {loading && (
+            <div className={styles.loadingContainer}>
+              <div className={styles.loadingSpinner}></div>
+              <p>Loading projects...</p>
+            </div>
+          )}
+          
+          {error && (
+            <div className={styles.errorContainer}>
+              <p>Error: {error}</p>
+            </div>
+          )}
+          
+          {!loading && !error && projects.length === 0 && (
+            <div className={styles.noProjectsContainer}>
+              <p>No projects found. Add your first project!</p>
+              <Link href="/add-new-project" className={styles.btn}>
+                Add New Project
+              </Link>
+            </div>
+          )}
+          
+          {!loading && !error && projects.length > 0 && (
+            <div className={styles.projectSliderContainer}>
+              {/* Slider Navigation Buttons */}
+              {projects.length > 3 && (
+                <div className={styles.sliderNavigation}>
+                  <button 
+                    onClick={prevSlide} 
+                    className={styles.sliderButton}
+                    aria-label="Previous projects"
+                  >
+                    <svg viewBox="0 0 24 24" width="24" height="24">
+                      <path fill="currentColor" d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/>
+                    </svg>
+                  </button>
+                  
+                  <button 
+                    onClick={nextSlide} 
+                    className={styles.sliderButton}
+                    aria-label="Next projects"
+                  >
+                    <svg viewBox="0 0 24 24" width="24" height="24">
+                      <path fill="currentColor" d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/>
+                    </svg>
+                  </button>
                 </div>
-              
+              )}
+
+              {/* Projects Grid */}
+              <div className={styles.projectGrid}>
+                {getCurrentProjects().map((project, index) => (
+                  <div 
+                    key={project ? project._id : `empty-${index}`} 
+                    className={styles.projectCard}
+                    onClick={() => project && project.liveUrl && window.open(project.liveUrl, '_blank', 'noopener,noreferrer')}
+                    style={{ cursor: project && project.liveUrl ? 'pointer' : 'default' }}
+                  >
+                    {project ? (
+                      <div>
+                        <img 
+                          src={project.imageUrl} 
+                          alt={project.name}
+                          onError={(e) => {
+                            e.target.src = '/placeholder-project.png'; // Fallback image
+                          }}
+                        />
+                        <div className={styles.projectContent}>
+                          <h4>{project.name}</h4>
+                          <p>{project.description}</p>
+                          <div className={styles.projectTech}>
+                            {project.technologies && project.technologies.map((tech, techIndex) => (
+                              <span key={techIndex}>{tech}</span>
+                            ))}
+                          </div>
+                          <div className={styles.projectLinks}>
+                            {project.githubUrl && (
+                              <a 
+                                href={project.githubUrl} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                GitHub
+                              </a>
+                            )}
+                          </div>
+                          <div className={styles.projectStatus}>
+                            <span className={`${styles.statusBadge} ${styles[project.status.toLowerCase().replace(' ', '')]}`}>
+                              {project.status}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className={styles.emptyCard}>
+                        <div className={styles.emptyCardContent}>
+                          <div className={styles.emptyCardIcon}>📁</div>
+                          <p>No Project</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
               </div>
-              </div>
-            </Link>
-            <Link href="https://mindtherapy1-wzsc.vercel.app/" className={styles.projectCard}>
-            <div>
-              <img src={mind.src} alt="Mind Therapy App" />
-              <div className={styles.projectContent}>
-                <h4>Mind Therapy App</h4>
-                <p>Emotional support app with journal and mood tracker featuring AI feedback and intelligent chatbot.</p>
-                <div className={styles.projectTech}>
-                  <span>Next.js</span>
-                  <span>Node.js</span>
-                  <span>MongoDB</span>
-                  <span>AI Integration</span>
+
+              {/* Slider Dots */}
+              {projects.length > 3 && (
+                <div className={styles.sliderDots}>
+                  {Array.from({ length: totalSlides }, (_, index) => (
+                    <button
+                      key={index}
+                      onClick={() => goToSlide(index * 3)}
+                      className={`${styles.dot} ${Math.floor(currentSlide / 3) === index ? styles.activeDot : ''}`}
+                      aria-label={`Go to slide ${index + 1}`}
+                    />
+                  ))}
                 </div>
-               
-              </div>
-              </div>
-            </Link>
-            <Link href="https://bookify-frontend-vw31.vercel.app/" className={styles.projectCard}>
-              <img src={bookify.src} alt="Bookify App" />
-              <div className={styles.projectContent}>
-                <h4>Bookify App</h4>
-                <p>Modern e-commerce platform for buying books online with smart search and personalized recommendations.</p>
-                <div className={styles.projectTech}>
-                  <span>React</span>
-                  <span>Express</span>
-                  <span>MongoDB</span>
-                  <span>Tailwind CSS</span>
+              )}
+
+              {/* Project Counter */}
+              {projects.length > 3 && (
+                <div className={styles.projectCounter}>
+                  <span>
+                    {currentSlide + 1}-{Math.min(currentSlide + 3, projects.length)} of {projects.length} projects
+                  </span>
                 </div>
-              </div>
+              )}
+            </div>
+          )}
+          
+          <div className={styles.addProjectButton}>
+            <Link href="/login?redirect=/add-new-project" className={styles.btn}>
+              Add New Project
             </Link>
+            <button onClick={refreshProjects} className={styles.btnSecondary}>
+              Refresh Projects
+            </button>
           </div>
         </div>
       </section>
