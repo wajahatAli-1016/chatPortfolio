@@ -47,6 +47,13 @@
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
 }
 
+.headerTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
 .backButton {
   display: inline-flex;
   align-items: center;
@@ -55,7 +62,6 @@
   font-weight: 600;
   font-size: 0.95rem;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  margin-bottom: 1.5rem;
   padding: 0.5rem 1rem;
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.05);

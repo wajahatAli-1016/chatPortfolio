@@ -24,6 +24,7 @@
   justify-content: space-between;
   align-items: center;
   padding: 1.25rem 0;
+  gap: 1rem;
 }
 
 .logo {
@@ -1328,7 +1329,7 @@
   }
   
   .projectGrid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, 1fr);
     gap: 1.5rem;
   }
 

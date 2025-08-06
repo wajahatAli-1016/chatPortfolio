@@ -1,9 +1,21 @@
 "use client"
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import styles from './chatbot.module.css';
 
 const Chatbot = () => {
+    const searchParams = useSearchParams();
+    const [locale, setLocale] = useState('en'); // Default to 'en' to match server render
+    const [isClient, setIsClient] = useState(false);
+    
+    // Handle locale detection on client side only
+    useEffect(() => {
+        setIsClient(true);
+        const detectedLocale = searchParams.get('locale') || 'en';
+        setLocale(detectedLocale);
+    }, [searchParams]);
+    
     const [messages, setMessages] = useState([
         {
             id: 1,
@@ -15,6 +27,23 @@ const Chatbot = () => {
     const [inputMessage, setInputMessage] = useState('');
     const [isTyping, setIsTyping] = useState(false);
     const messagesEndRef = useRef(null);
+
+    // Update welcome message when locale changes
+    useEffect(() => {
+        if (isClient && locale) {
+            const welcomeMessage = locale === 'fr' 
+                ? "Salut ! Je suis WajahatBot 🤖. Envie d'explorer mon travail ? Posez-moi vos questions ! Vous pouvez me demander mes projets, compétences, expérience ou autre chose !"
+                : "Hi there! I'm WajahatBot 🤖. Want to explore my work? Ask away! You can ask me about my projects, skills, experience, or anything else!";
+            
+            setMessages(prev => 
+                prev.map(msg => 
+                    msg.id === 1 
+                        ? { ...msg, text: welcomeMessage }
+                        : msg
+                )
+            );
+        }
+    }, [locale, isClient]);
 
     // Wajahat's comprehensive information
     const wajahatData = {
@@ -98,16 +127,15 @@ const Chatbot = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     };
 
-    useEffect(() => {
-        scrollToBottom();
-    }, [messages]);
-
-    const callGroqAPI = async (userMessage) => {
+    // Function to translate text to French
+    const translateToFrench = async (text) => {
+        if (locale !== 'fr') return text; // Only translate if locale is French
+        
         try {
             const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${process.env.NEXT_PUBLIC_GROQ_API_KEY || 'your-api-key-here'}`,
+                    'Authorization': `Bearer ${process.env.NEXT_PUBLIC_GROQ_API_KEY}`,
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
@@ -115,7 +143,56 @@ const Chatbot = () => {
                     messages: [
                         {
                             role: 'system',
-                            content: `You are WajahatBot, an AI assistant for Wajahat Ali's portfolio. Keep all responses SHORT, CONCISE, and TO THE POINT. Maximum 2-3 sentences per answer.
+                            content: 'You are a translator. Translate the user message to French. Keep the same meaning and tone. Only respond with the French translation, nothing else.'
+                        },
+                        {
+                            role: 'user',
+                            content: text
+                        }
+                    ],
+                    temperature: 0.3,
+                    max_tokens: 100,
+                    top_p: 1,
+                    stream: false
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+            return data.choices[0].message.content.trim();
+        } catch (error) {
+            console.error('Translation error:', error);
+            return text; // Return original text if translation fails
+        }
+    };
+
+    useEffect(() => {
+        scrollToBottom();
+    }, [messages]);
+
+    const callGroqAPI = async (userMessage) => {
+        try {
+            const languageInstruction = locale === 'fr' 
+                ? "IMPORTANT: Respond ONLY in French. All responses must be in French language."
+                : "IMPORTANT: Respond ONLY in English. All responses must be in English language.";
+
+            const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${process.env.NEXT_PUBLIC_GROQ_API_KEY}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    model: 'llama3-8b-8192',
+                    messages: [
+                        {
+                            role: 'system',
+                            content: `${languageInstruction}
+
+You are WajahatBot, an AI assistant for Wajahat Ali's portfolio. Keep all responses SHORT, CONCISE, and TO THE POINT. Maximum 2-3 sentences per answer.
 
 ${JSON.stringify(wajahatData, null, 2)}
 
@@ -124,7 +201,8 @@ Key rules:
 - Focus on the most relevant information only
 - Use bullet points when listing multiple items
 - Be friendly but concise
-- If asked about something not in the data, briefly redirect to Wajahat's work`
+- If asked about something not in the data, briefly redirect to Wajahat's work
+- ALWAYS respond in ${locale === 'fr' ? 'French' : 'English'}`
                         },
                         {
                             role: 'user',
@@ -146,7 +224,10 @@ Key rules:
             return data.choices[0].message.content;
         } catch (error) {
             console.error('Error calling Groq API:', error);
-            return "I'm having trouble connecting to my AI service right now. But I can tell you about Wajahat! He's a passionate Fullstack Developer from Pakistan who has built amazing projects like DevBlog, EcomStore, and ChatPortfolio AI. He specializes in React, Next.js, Node.js, and MongoDB. Would you like to know more about his work?";
+            const fallbackMessage = locale === 'fr'
+                ? "J'ai des difficultés à me connecter à mon service IA en ce moment. Mais je peux vous parler de Wajahat ! C'est un développeur Fullstack passionné du Pakistan qui a construit des projets incroyables comme DevBlog, EcomStore et ChatPortfolio AI. Il se spécialise dans React, Next.js, Node.js et MongoDB. Voulez-vous en savoir plus sur son travail ?"
+                : "I'm having trouble connecting to my AI service right now. But I can tell you about Wajahat! He's a passionate Fullstack Developer from Pakistan who has built amazing projects like DevBlog, EcomStore, and ChatPortfolio AI. He specializes in React, Next.js, Node.js, and MongoDB. Would you like to know more about his work?";
+            return fallbackMessage;
         }
     };
 
@@ -180,9 +261,13 @@ Key rules:
             console.error('Error in handleSendMessage:', error);
 
             // Fallback response
+            const fallbackMessage = locale === 'fr'
+                ? "Je suis désolé, j'ai des difficultés techniques en ce moment. Mais je serais ravi de vous parler de Wajahat ! C'est un développeur Fullstack talentueux du Pakistan avec de l'expérience en React, Next.js, Node.js et MongoDB. Ses projets incluent DevBlog, EcomStore et ChatPortfolio AI. Que souhaitez-vous savoir sur son travail ?"
+                : "I'm sorry, I'm having some technical difficulties right now. But I'd be happy to tell you about Wajahat! He's a talented Fullstack Developer from Pakistan with experience in React, Next.js, Node.js, and MongoDB. His projects include DevBlog, EcomStore, and ChatPortfolio AI. What would you like to know about his work?";
+
             const fallbackResponse = {
                 id: messages.length + 2,
-                text: "I'm sorry, I'm having some technical difficulties right now. But I'd be happy to tell you about Wajahat! He's a talented Fullstack Developer from Pakistan with experience in React, Next.js, Node.js, and MongoDB. His projects include DevBlog, EcomStore, and ChatPortfolio AI. What would you like to know about his work?",
+                text: fallbackMessage,
                 sender: 'ai',
                 timestamp: new Date()
             };
@@ -204,16 +289,34 @@ Key rules:
         return timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     };
 
+    // Don't render until client-side hydration is complete
+    if (!isClient) {
+        return (
+            <div className={styles.chatbotContainer}>
+                <div style={{ 
+                    display: 'flex', 
+                    justifyContent: 'center', 
+                    alignItems: 'center', 
+                    height: '100vh',
+                    fontSize: '18px',
+                    color: '#666'
+                }}>
+                    Loading...
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className={styles.chatbotContainer}>
             {/* Header */}
             <header className={styles.chatbotHeader}>
                 <div className={styles.container}>
-                    <Link href="/" className={styles.backButton}>
+                    <Link href={`/${locale}`} className={styles.backButton}>
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <path d="M19 12H5M12 19l-7-7 7-7" />
                         </svg>
-                        Back to Portfolio
+                        {locale === 'fr' ? 'Retour au Portfolio' : 'Back to Portfolio'}
                     </Link>
                     <div className={styles.headerContent}>
                         <div className={styles.aiAvatar}>
@@ -224,7 +327,10 @@ Key rules:
                         </div>
                         <div>
                             <h1>WajahatBot 🤖</h1>
-                            <p>Ask me about Wajahat's projects, skills, experience, or anything else!</p>
+                            <p>{locale === 'fr' 
+                                ? 'Posez-moi vos questions sur les projets, compétences, expérience de Wajahat ou autre chose !'
+                                : 'Ask me about Wajahat\'s projects, skills, experience, or anything else!'
+                            }</p>
                         </div>
                     </div>
                 </div>
@@ -285,7 +391,10 @@ Key rules:
                             value={inputMessage}
                             onChange={(e) => setInputMessage(e.target.value)}
                             onKeyPress={handleKeyPress}
-                            placeholder="Ask me about Wajahat's projects, skills, or experience..."
+                            placeholder={locale === 'fr' 
+                                ? "Posez-moi vos questions sur les projets, compétences ou expérience de Wajahat..."
+                                : "Ask me about Wajahat's projects, skills, or experience..."
+                            }
                             className={styles.messageInput}
                             rows="1"
                         />
@@ -300,7 +409,10 @@ Key rules:
                         </button>
                     </div>
                     <div className={styles.inputHint}>
-                        Try asking: "Tell me about Wajahat", "What projects has he built?", "What's his tech stack?"
+                        {locale === 'fr' 
+                            ? 'Essayez de demander : "Parlez-moi de Wajahat", "Quels projets a-t-il construits ?", "Quelle est sa stack technique ?"'
+                            : 'Try asking: "Tell me about Wajahat", "What projects has he built?", "What\'s his tech stack?"'
+                        }
                     </div>
                 </div>
             </div>

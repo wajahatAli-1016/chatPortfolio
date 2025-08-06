@@ -1,18 +1,39 @@
 "use client"
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import styles from './page.module.css';
-import async from '../../public/async.png'
-import mind from '../../public/mind.png'
-import bookify from '../../public/bookify.png'
-import ChatbotModal from './components/ChatbotModal';
+import styles from '../page.module.css';
+import async from '../../../public/async.png'
+import mind from '../../../public/mind.png'
+import bookify from '../../../public/bookify.png'
+import ChatbotModal from '../components/ChatbotModal';
+import LanguageSwitcher from '../components/LanguageSwitcher';
+import { useTranslation } from '../../lib/i18n';
 
-const Home = () => {
+const HomeClient = ({ locale }) => {
+  const { t } = useTranslation(locale);
   const [isChatbotOpen, setIsChatbotOpen] = useState(false);
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Check screen size on mount and resize
+  useEffect(() => {
+    const checkScreenSize = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+
+    checkScreenSize();
+    window.addEventListener('resize', checkScreenSize);
+
+    return () => window.removeEventListener('resize', checkScreenSize);
+  }, []);
+
+  // Reset current slide when screen size changes
+  useEffect(() => {
+    setCurrentSlide(0);
+  }, [isMobile]);
 
   const openChatbot = () => {
     setIsChatbotOpen(true);
@@ -33,11 +54,11 @@ const Home = () => {
       if (data.success) {
         setProjects(data.data);
       } else {
-        setError('Failed to fetch projects');
+        setError(t('projects.error'));
       }
     } catch (error) {
       console.error('Error fetching projects:', error);
-      setError('Failed to fetch projects');
+      setError(t('projects.error'));
     } finally {
       setLoading(false);
     }
@@ -54,14 +75,16 @@ const Home = () => {
 
   // Slider navigation functions
   const nextSlide = () => {
+    const projectsPerSlide = isMobile ? 2 : 3;
     setCurrentSlide((prev) => 
-      prev + 3 >= projects.length ? 0 : prev + 3
+      prev + projectsPerSlide >= projects.length ? 0 : prev + projectsPerSlide
     );
   };
 
   const prevSlide = () => {
+    const projectsPerSlide = isMobile ? 2 : 3;
     setCurrentSlide((prev) => 
-      prev - 3 < 0 ? Math.max(0, projects.length - 3) : prev - 3
+      prev - projectsPerSlide < 0 ? Math.max(0, projects.length - projectsPerSlide) : prev - projectsPerSlide
     );
   };
 
@@ -69,58 +92,66 @@ const Home = () => {
     setCurrentSlide(index);
   };
 
-  // Get current projects to display (3 at a time)
+  // Get current projects to display (3 on desktop/tablet, 2 on mobile)
   const getCurrentProjects = () => {
-    const currentProjects = projects.slice(currentSlide, currentSlide + 3);
-    // Pad with empty objects to maintain 3 columns
-    while (currentProjects.length < 3) {
+    const projectsPerSlide = isMobile ? 2 : 3;
+    
+    const currentProjects = projects.slice(currentSlide, currentSlide + projectsPerSlide);
+    // Pad with empty objects to maintain consistent columns
+    while (currentProjects.length < projectsPerSlide) {
       currentProjects.push(null);
     }
     return currentProjects;
   };
 
-  // Calculate total slides
-  const totalSlides = Math.ceil(projects.length / 3);
+  // Calculate total slides based on screen size
+  const calculateTotalSlides = () => {
+    const projectsPerSlide = isMobile ? 2 : 3;
+    return Math.ceil(projects.length / projectsPerSlide);
+  };
+
+  const totalSlides = calculateTotalSlides();
+  
   return (
     <>
-    <header className={styles.navbar}>
+      <header className={styles.navbar}>
         <div className={styles.container}>
           <h1 className={styles.logo}>Wajahat Ali</h1>
           <nav>
             <ul className={styles.navLinks}>
-              <li><a href="#about">About</a></li>
-              <li><a href="#skills">Skills</a></li>
-              <li><a href="#experience">Experience</a></li>
-              <li><a href="#projects">Projects</a></li>
-              <li><a href="#contact">Contact</a></li>
+              <li><a href="#about">{t('nav.about')}</a></li>
+              <li><a href="#skills">{t('nav.skills')}</a></li>
+              <li><a href="#experience">{t('nav.experience')}</a></li>
+              <li><a href="#projects">{t('nav.projects')}</a></li>
+              <li><a href="#contact">{t('nav.contact')}</a></li>
             </ul>
           </nav>
+          <LanguageSwitcher locale={locale} />
         </div>
       </header>
 
       <section className={styles.hero}>
         <div className={styles.container}>
-          <h2>Hi, I'm Wajahat 👋</h2>
-          <p className={styles.heroSubtitle}>Full Stack Developer & Problem Solver</p>
-          <p className={styles.heroDescription}>
-          Full-stack developer building products that users love. From MVP to scale, I handle frontend magic (React/Next.js), backend logic (Node.js/Python), and everything in between.</p>
+          <h2>{t('hero.greeting')}</h2>
+          <p className={styles.heroSubtitle}>{t('hero.subtitle')}</p>
+          <p className={styles.heroDescription}>{t('hero.description')}</p>
           <div className={styles.btnContainer}>
-            <a href="#projects" className={styles.btn}>View My Work</a>
-            <button onClick={openChatbot} className={styles.btn}>Chat with AI</button>
-            <a href="#contact" className={styles.btn}>Get In Touch</a>
+            <a href="#projects" className={styles.btn}>{t('hero.viewWork')}</a>
+            <button onClick={openChatbot} className={styles.btn}>{t('hero.chatWithAI')}</button>
+            <a href="#contact" className={styles.btn}>{t('hero.getInTouch')}</a>
           </div>
           <div className={styles.heroStats}>
             <div className={styles.stat}>
               <span className={styles.statNumber}>2</span>
-              <span className={styles.statLabel}>months Experience</span>
+              <span className={styles.statLabel}>{t('hero.stats.experience')}</span>
             </div>
             <div className={styles.stat}>
               <span className={styles.statNumber}>5</span>
-              <span className={styles.statLabel}>Projects Completed</span>
+              <span className={styles.statLabel}>{t('hero.stats.projects')}</span>
             </div>
             <div className={styles.stat}>
               <span className={styles.statNumber}>100%</span>
-              <span className={styles.statLabel}>Client Satisfaction</span>
+              <span className={styles.statLabel}>{t('hero.stats.satisfaction')}</span>
             </div>
           </div>
         </div>
@@ -129,41 +160,32 @@ const Home = () => {
       {/* About */}
       <section id="about" className={styles.about}>
         <div className={styles.container}>
-          <h3>About Me</h3>
+          <h3>{t('about.title')}</h3>
           <div className={styles.aboutContent}>
             <div className={styles.aboutText}>
-              <p>
-                I'm a passionate Full Stack Developer from lahore, currently pursuing my BS in Computer Science 
-                at the University of the Punjab. I love creating web applications that not only look great but 
-                also solve real-world problems efficiently.
-              </p>
-              <p>
-                My journey in web development started with curiosity and has evolved into a deep passion for 
-                building user-centric applications. I believe in writing clean, maintainable code and staying 
-                up-to-date with the latest technologies and best practices.
-              </p>
-              
+              <p>{t('about.description1')}</p>
+              <p>{t('about.description2')}</p>
             </div>
             <div className={styles.aboutDetails}>
               <div className={styles.detailItem}>
-                <span className={styles.detailLabel}>📍 Location:</span>
-                <span className={styles.detailValue}>Pakistan</span>
+                <span className={styles.detailLabel}>{t('about.details.location')}</span>
+                <span className={styles.detailValue}>{t('about.values.location')}</span>
               </div>
               <div className={styles.detailItem}>
-                <span className={styles.detailLabel}>🎓 Education:</span>
-                <span className={styles.detailValue}>BS Computer Science</span>
+                <span className={styles.detailLabel}>{t('about.details.education')}</span>
+                <span className={styles.detailValue}>{t('about.values.education')}</span>
               </div>
               <div className={styles.detailItem}>
-                <span className={styles.detailLabel}>🏢 University:</span>
-                <span className={styles.detailValue}>University of the Punjab</span>
+                <span className={styles.detailLabel}>{t('about.details.university')}</span>
+                <span className={styles.detailValue}>{t('about.values.university')}</span>
               </div>
               <div className={styles.detailItem}>
-                <span className={styles.detailLabel}>📧 Email:</span>
-                <span className={styles.detailValue}>wajahataliq1224@example.com</span>
+                <span className={styles.detailLabel}>{t('about.details.email')}</span>
+                <span className={styles.detailValue}>{t('about.values.email')}</span>
               </div>
               <div className={styles.detailItem}>
-                <span className={styles.detailLabel}>💼 Available:</span>
-                <span className={styles.detailValue}>For Full-time job</span>
+                <span className={styles.detailLabel}>{t('about.details.available')}</span>
+                <span className={styles.detailValue}>{t('about.values.available')}</span>
               </div>
             </div>
           </div>
@@ -173,95 +195,93 @@ const Home = () => {
       {/* Skills */}
       <section id="skills" className={styles.skills}>
         <div className={styles.container}>
-          <h3>Skills & Technologies</h3>
+          <h3>{t('skills.title')}</h3>
           <div className={styles.skillsGrid}>
             <div className={styles.skillCategory}>
-              <h4>Frontend Development</h4>
+              <h4>{t('skills.categories.frontend')}</h4>
               <div className={styles.skillItems}>
-                <span className={styles.skillItem}>React.js</span>
-                <span className={styles.skillItem}>Next.js</span>
-                <span className={styles.skillItem}>JavaScript (ES6+)</span>
-                <span className={styles.skillItem}>HTML5 & CSS3</span>
-                <span className={styles.skillItem}>Tailwind CSS</span>
-                <span className={styles.skillItem}>Responsive Design</span>
+                <span className={styles.skillItem}>{t('skills.items.react')}</span>
+                <span className={styles.skillItem}>{t('skills.items.nextjs')}</span>
+                <span className={styles.skillItem}>{t('skills.items.javascript')}</span>
+                <span className={styles.skillItem}>{t('skills.items.htmlcss')}</span>
+                <span className={styles.skillItem}>{t('skills.items.tailwind')}</span>
+                <span className={styles.skillItem}>{t('skills.items.responsive')}</span>
               </div>
             </div>
             <div className={styles.skillCategory}>
-              <h4>Backend Development</h4>
+              <h4>{t('skills.categories.backend')}</h4>
               <div className={styles.skillItems}>
-                <span className={styles.skillItem}>Node.js</span>
-                <span className={styles.skillItem}>Express.js</span>
-                <span className={styles.skillItem}>MongoDB</span>
-                <span className={styles.skillItem}>RESTful APIs</span>
-                <span className={styles.skillItem}>Authentication</span>
-                <span className={styles.skillItem}>Database Design</span>
+                <span className={styles.skillItem}>{t('skills.items.nodejs')}</span>
+                <span className={styles.skillItem}>{t('skills.items.express')}</span>
+                <span className={styles.skillItem}>{t('skills.items.mongodb')}</span>
+                <span className={styles.skillItem}>{t('skills.items.restapi')}</span>
+                <span className={styles.skillItem}>{t('skills.items.auth')}</span>
+                <span className={styles.skillItem}>{t('skills.items.database')}</span>
               </div>
             </div>
             <div className={styles.skillCategory}>
-              <h4>Tools & Platforms</h4>
+              <h4>{t('skills.categories.tools')}</h4>
               <div className={styles.skillItems}>
-                <span className={styles.skillItem}>Git & GitHub</span>
-                <span className={styles.skillItem}>VS Code</span>
-                <span className={styles.skillItem}>Postman</span>
-                <span className={styles.skillItem}>Vercel</span>
-                <span className={styles.skillItem}>Netlify</span>
-                <span className={styles.skillItem}>Figma</span>
+                <span className={styles.skillItem}>{t('skills.items.git')}</span>
+                <span className={styles.skillItem}>{t('skills.items.vscode')}</span>
+                <span className={styles.skillItem}>{t('skills.items.postman')}</span>
+                <span className={styles.skillItem}>{t('skills.items.vercel')}</span>
+                <span className={styles.skillItem}>{t('skills.items.netlify')}</span>
+                <span className={styles.skillItem}>{t('skills.items.figma')}</span>
               </div>
             </div>
-            </div>
+          </div>
         </div>
       </section>
 
       {/* Experience */}
       <section id="experience" className={styles.experience}>
         <div className={styles.container}>
-          <h3>Experience</h3>
+          <h3>{t('experience.title')}</h3>
           <div className={styles.experienceTimeline}>
             <div className={styles.timelineItem}>
               <div className={styles.timelineContent}>
                 <div className={styles.timelineHeader}>
-                  <h4>Full Stack Developer Intern</h4>
-                  <span className={styles.company}>Musketeers Tech</span>
-                  <span className={styles.duration}>July 2025 - September 2025</span>
+                  <h4>{t('experience.items.title')}</h4>
+                  <span className={styles.company}>{t('experience.items.company')}</span>
+                  <span className={styles.duration}>{t('experience.items.duration')}</span>
                 </div>
                 <p>
-                  • Built scalable web solutions using Next.js, Node.js, and MongoDB<br/>
-                  • Applied internationalization (i18n) in multiple projects<br/>
-                  • Collaborated with cross-functional teams to deliver high-quality products<br/>
-                  • Implemented responsive design principles and modern UI/UX patterns
+                  {t('experience.items.description').map((item, index) => (
+                    <span key={index}>
+                      {item}<br/>
+                    </span>
+                  ))}
                 </p>
               </div>
             </div>
-           </div>
+          </div>
         </div>
       </section>
 
       <section id="projects" className={styles.projects}>
         <div className={styles.container}>
-          <h3>Featured Projects</h3>
-          <p className={styles.projectsIntro}>
-            Here are some of my recent projects that showcase my skills in full-stack development, 
-            UI/UX design, and problem-solving abilities.
-          </p>
+          <h3>{t('projects.title')}</h3>
+          <p className={styles.projectsIntro}>{t('projects.intro')}</p>
           
           {loading && (
             <div className={styles.loadingContainer}>
               <div className={styles.loadingSpinner}></div>
-              <p>Loading projects...</p>
+              <p>{t('projects.loading')}</p>
             </div>
           )}
           
           {error && (
             <div className={styles.errorContainer}>
-              <p>Error: {error}</p>
+              <p>{t('projects.error')} {error}</p>
             </div>
           )}
           
           {!loading && !error && projects.length === 0 && (
             <div className={styles.noProjectsContainer}>
-              <p>No projects found. Add your first project!</p>
-              <Link href="/add-new-project" className={styles.btn}>
-                Add New Project
+              <p>{t('projects.noProjects')}</p>
+              <Link href={`/${locale}/add-new-project`} className={styles.btn}>
+                {t('projects.addNewProject')}
               </Link>
             </div>
           )}
@@ -269,12 +289,12 @@ const Home = () => {
           {!loading && !error && projects.length > 0 && (
             <div className={styles.projectSliderContainer}>
               {/* Slider Navigation Buttons */}
-              {projects.length > 3 && (
+              {projects.length > (isMobile ? 2 : 3) && (
                 <div className={styles.sliderNavigation}>
                   <button 
                     onClick={prevSlide} 
                     className={styles.sliderButton}
-                    aria-label="Previous projects"
+                    aria-label={t('projects.previous')}
                   >
                     <svg viewBox="0 0 24 24" width="24" height="24">
                       <path fill="currentColor" d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/>
@@ -284,7 +304,7 @@ const Home = () => {
                   <button 
                     onClick={nextSlide} 
                     className={styles.sliderButton}
-                    aria-label="Next projects"
+                    aria-label={t('projects.next')}
                   >
                     <svg viewBox="0 0 24 24" width="24" height="24">
                       <path fill="currentColor" d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/>
@@ -327,7 +347,7 @@ const Home = () => {
                                 rel="noopener noreferrer"
                                 onClick={(e) => e.stopPropagation()}
                               >
-                                GitHub
+                                {t('projects.github')}
                               </a>
                             )}
                           </div>
@@ -342,7 +362,7 @@ const Home = () => {
                       <div className={styles.emptyCard}>
                         <div className={styles.emptyCardContent}>
                           <div className={styles.emptyCardIcon}>📁</div>
-                          <p>No Project</p>
+                          <p>{t('projects.noProject')}</p>
                         </div>
                       </div>
                     )}
@@ -351,7 +371,7 @@ const Home = () => {
               </div>
 
               {/* Slider Dots */}
-              {projects.length > 3 && (
+              {projects.length > (isMobile ? 2 : 3) && (
                 <div className={styles.sliderDots}>
                   {Array.from({ length: totalSlides }, (_, index) => (
                     <button
@@ -365,10 +385,10 @@ const Home = () => {
               )}
 
               {/* Project Counter */}
-              {projects.length > 3 && (
+              {projects.length > (isMobile ? 2 : 3) && (
                 <div className={styles.projectCounter}>
                   <span>
-                    {currentSlide + 1}-{Math.min(currentSlide + 3, projects.length)} of {projects.length} projects
+                    {currentSlide + 1}-{Math.min(currentSlide + (isMobile ? 2 : 3), projects.length)} {t('projects.of')} {projects.length} {t('projects.projects')}
                   </span>
                 </div>
               )}
@@ -376,11 +396,11 @@ const Home = () => {
           )}
           
           <div className={styles.addProjectButton}>
-            <Link href="/login?redirect=/add-new-project" className={styles.btn}>
-              Add New Project
+            <Link href={`/${locale}/login?redirect=/${locale}/add-new-project`} className={styles.btn}>
+              {t('projects.addNewProject')}
             </Link>
             <button onClick={refreshProjects} className={styles.btnSecondary}>
-              Refresh Projects
+              {t('projects.refreshProjects')}
             </button>
           </div>
         </div>
@@ -389,23 +409,22 @@ const Home = () => {
       {/* Achievements */}
       <section className={styles.achievements}>
         <div className={styles.container}>
-          <h3>Achievements & Certifications</h3>
+          <h3>{t('achievements.title')}</h3>
           <div className={styles.achievementsGrid}>
             <div className={styles.achievementCard}>
               <div className={styles.achievementIcon}>🏆</div>
-              <h4>Academic Excellence</h4>
-              <p>Maintained high academic performance in Computer Science program</p>
+              <h4>{t('achievements.items.academic.title')}</h4>
+              <p>{t('achievements.items.academic.description')}</p>
             </div>
             <div className={styles.achievementCard}>
               <div className={styles.achievementIcon}>🚀</div>
-              <h4>5 Projects</h4>
-              <p>Successfully completed and deployed multiple web applications</p>
+              <h4>{t('achievements.items.projects.title')}</h4>
+              <p>{t('achievements.items.projects.description')}</p>
             </div>
-           
             <div className={styles.achievementCard}>
               <div className={styles.achievementIcon}>🤝</div>
-              <h4>Team Player</h4>
-              <p>Collaborated effectively in diverse team environments</p>
+              <h4>{t('achievements.items.team.title')}</h4>
+              <p>{t('achievements.items.team.description')}</p>
             </div>
           </div>
         </div>
@@ -413,54 +432,49 @@ const Home = () => {
 
       <section id="contact" className={styles.contact}>
         <div className={styles.container}>
-          <h3>Let's Work Together</h3>
-          <p>
-            I'm always interested in new opportunities and exciting projects. 
-            Whether you have a question, want to discuss a project, or just want to say hi, 
-            I'd love to hear from you!
-          </p>
+          <h3>{t('contact.title')}</h3>
+          <p>{t('contact.description')}</p>
           <div className={styles.contactInfo}>
             <div className={styles.contactItem}>
               <span className={styles.contactIcon}>📧</span>
               <div>
-                <h4>Email</h4>
+                <h4>{t('contact.email')}</h4>
                 <a href="mailto:wajahataliq1224@gmail.com">wajahataliq1224@gmail.com</a>
               </div>
             </div>
             <div className={styles.contactItem}>
               <span className={styles.contactIcon}>📍</span>
               <div>
-                <h4>Location</h4>
+                <h4>{t('contact.location')}</h4>
                 <p>Lahore</p>
               </div>
             </div>
-            
           </div>
-                      <div className={styles.socialLinks}>
-              <a href="https://github.com/wajahatAli-1016" target="_blank" rel="noopener noreferrer" className={styles.btn}>
-                <span>GitHub</span>
-              </a>
-              <a href="https://www.linkedin.com/in/wajahat-ali-880a74272/" target="_blank" rel="noopener noreferrer" className={styles.btn}>
-                <span>LinkedIn</span>
-              </a>
-            </div>
+          <div className={styles.socialLinks}>
+            <a href="https://github.com/wajahatAli-1016" target="_blank" rel="noopener noreferrer" className={styles.btn}>
+              <span>GitHub</span>
+            </a>
+            <a href="https://www.linkedin.com/in/wajahat-ali-880a74272/" target="_blank" rel="noopener noreferrer" className={styles.btn}>
+              <span>LinkedIn</span>
+            </a>
+          </div>
           <div className={styles.contactButtons}>
-            <a href="/contact" className={styles.btn}>Send Email</a>
-            <button onClick={openChatbot} className={styles.btn}>Chat with AI</button>
+            <a href={`/${locale}/contact`} className={styles.btn}>{t('contact.sendEmail')}</a>
+            <button onClick={openChatbot} className={styles.btn}>{t('contact.chatWithAI')}</button>
           </div>
         </div>
       </section>
 
       <footer className={styles.footer}>
         <div className={styles.container}>
-          <p>&copy; 2025 Wajahat Ali. All rights reserved.</p>
+          <p>{t('footer.copyright')}</p>
         </div>
       </footer>
 
       {/* Chatbot Modal */}
-      <ChatbotModal isOpen={isChatbotOpen} onClose={closeChatbot} />
-      </>
- )
+      <ChatbotModal isOpen={isChatbotOpen} onClose={closeChatbot} locale={locale} />
+    </>
+  );
 };
 
-export default Home;
+export default HomeClient;
