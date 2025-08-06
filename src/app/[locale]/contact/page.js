@@ -3,7 +3,8 @@ import { useState } from 'react';
 import Link from 'next/link';
 import styles from '../../contact/contact.module.css';
 import { useTranslation } from '../../../lib/i18n';
-import LanguageSwitcher from '../components/LanguageSwitcher';
+import LanguageSwitcher from '../../components/LanguageSwitcher';
+
 
 const ContactPage = ({ params }) => {
   const locale = params?.locale || 'en';
