@@ -142,6 +142,23 @@ const translations = {
     footer: {
       copyright: '© 2024 Wajahat Ali. All rights reserved.',
     },
+    
+    // Login Page
+    login: {
+      title: 'Admin Login',
+      subtitle: 'Enter your credentials to access the admin panel',
+      email: 'Email',
+      password: 'Password',
+      emailPlaceholder: 'Enter your email',
+      passwordPlaceholder: 'Enter your password',
+      login: 'Login',
+      loggingIn: 'Logging in...',
+      loginSuccess: 'Login successful! Redirecting...',
+      loginFailed: 'Login failed',
+      loginError: 'An error occurred during login',
+      backToPortfolio: '← Back to Portfolio',
+      loading: 'Loading...',
+    },
   },
   
   fr: {
@@ -283,6 +300,23 @@ const translations = {
     // Footer
     footer: {
       copyright: '© 2024 Wajahat Ali. Tous droits réservés.',
+    },
+    
+    // Login Page
+    login: {
+      title: 'Connexion Admin',
+      subtitle: 'Entrez vos identifiants pour accéder au panneau d\'administration',
+      email: 'Email',
+      password: 'Mot de passe',
+      emailPlaceholder: 'Entrez votre email',
+      passwordPlaceholder: 'Entrez votre mot de passe',
+      login: 'Se connecter',
+      loggingIn: 'Connexion en cours...',
+      loginSuccess: 'Connexion réussie ! Redirection...',
+      loginFailed: 'Échec de la connexion',
+      loginError: 'Une erreur s\'est produite lors de la connexion',
+      backToPortfolio: '← Retour au Portfolio',
+      loading: 'Chargement...',
     },
   },
 };

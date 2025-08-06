@@ -1,10 +1,10 @@
 "use client"
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import styles from './chatbot.module.css';
 
-const Chatbot = () => {
+const ChatbotContent = () => {
     const searchParams = useSearchParams();
     const [locale, setLocale] = useState('en'); // Default to 'en' to match server render
     const [isClient, setIsClient] = useState(false);
@@ -234,9 +234,12 @@ Key rules:
     const handleSendMessage = async () => {
         if (!inputMessage.trim()) return;
 
+        // Translate user message to the appropriate language based on locale
+        const translatedMessage = await translateToFrench(inputMessage);
+        
         const userMessage = {
             id: messages.length + 1,
-            text: inputMessage,
+            text: translatedMessage, // Show translated message in chat
             sender: 'user',
             timestamp: new Date()
         };
@@ -246,8 +249,8 @@ Key rules:
         setIsTyping(true);
 
         try {
-            // Call Groq API for AI response
-            const aiResponseText = await callGroqAPI(inputMessage);
+            // Call Groq API for AI response with translated message
+            const aiResponseText = await callGroqAPI(translatedMessage);
 
             const aiResponse = {
                 id: messages.length + 2,
@@ -289,56 +292,18 @@ Key rules:
         return timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     };
 
-    // Don't render until client-side hydration is complete
-    if (!isClient) {
-        return (
-            <div className={styles.chatbotContainer}>
-                <div style={{ 
-                    display: 'flex', 
-                    justifyContent: 'center', 
-                    alignItems: 'center', 
-                    height: '100vh',
-                    fontSize: '18px',
-                    color: '#666'
-                }}>
-                    Loading...
-                </div>
-            </div>
-        );
-    }
-
     return (
-        <div className={styles.chatbotContainer}>
-            {/* Header */}
-            <header className={styles.chatbotHeader}>
-                <div className={styles.container}>
-                    <Link href={`/${locale}`} className={styles.backButton}>
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M19 12H5M12 19l-7-7 7-7" />
-                        </svg>
-                        {locale === 'fr' ? 'Retour au Portfolio' : 'Back to Portfolio'}
-                    </Link>
-                    <div className={styles.headerContent}>
-                        <div className={styles.aiAvatar}>
-                            <div className={styles.avatarPulse}></div>
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                            </svg>
-                        </div>
-                        <div>
-                            <h1>WajahatBot 🤖</h1>
-                            <p>{locale === 'fr' 
-                                ? 'Posez-moi vos questions sur les projets, compétences, expérience de Wajahat ou autre chose !'
-                                : 'Ask me about Wajahat\'s projects, skills, experience, or anything else!'
-                            }</p>
-                        </div>
-                    </div>
-                </div>
-            </header>
+        <div className={styles.container}>
+            <div className={styles.header}>
+                <Link href="/" className={styles.backButton}>
+                    ← Back to Portfolio
+                </Link>
+                <h1>WajahatBot 🤖</h1>
+                <p>{locale === 'fr' ? 'Posez-moi vos questions sur Wajahat !' : 'Ask me about Wajahat!'}</p>
+            </div>
 
-            {/* Chat Messages */}
-            <div className={styles.chatArea}>
-                <div className={styles.messagesContainer}>
+            <div className={styles.chatContainer}>
+                <div className={styles.messages}>
                     {messages.map((message) => (
                         <div
                             key={message.id}
@@ -352,7 +317,6 @@ Key rules:
                             </div>
                             {message.sender === 'ai' && (
                                 <div className={styles.aiIndicator}>
-                                    <div className={styles.avatarPulse}></div>
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                         <path d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                                     </svg>
@@ -371,7 +335,6 @@ Key rules:
                                 </div>
                             </div>
                             <div className={styles.aiIndicator}>
-                                <div className={styles.avatarPulse}></div>
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                     <path d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                                 </svg>
@@ -381,42 +344,55 @@ Key rules:
 
                     <div ref={messagesEndRef} />
                 </div>
-            </div>
 
-            {/* Input Area */}
-            <div className={styles.inputArea}>
-                <div className={styles.container}>
-                    <div className={styles.inputContainer}>
-                        <textarea
-                            value={inputMessage}
-                            onChange={(e) => setInputMessage(e.target.value)}
-                            onKeyPress={handleKeyPress}
-                            placeholder={locale === 'fr' 
-                                ? "Posez-moi vos questions sur les projets, compétences ou expérience de Wajahat..."
-                                : "Ask me about Wajahat's projects, skills, or experience..."
-                            }
-                            className={styles.messageInput}
-                            rows="1"
-                        />
-                        <button
-                            onClick={handleSendMessage}
-                            disabled={!inputMessage.trim()}
-                            className={styles.sendButton}
-                        >
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" />
-                            </svg>
-                        </button>
-                    </div>
-                    <div className={styles.inputHint}>
-                        {locale === 'fr' 
-                            ? 'Essayez de demander : "Parlez-moi de Wajahat", "Quels projets a-t-il construits ?", "Quelle est sa stack technique ?"'
-                            : 'Try asking: "Tell me about Wajahat", "What projects has he built?", "What\'s his tech stack?"'
+                <div className={styles.inputContainer}>
+                    <textarea
+                        value={inputMessage}
+                        onChange={(e) => setInputMessage(e.target.value)}
+                        onKeyPress={handleKeyPress}
+                        placeholder={locale === 'fr' 
+                            ? "Posez-moi vos questions sur les projets, compétences ou expérience de Wajahat..."
+                            : "Ask me about Wajahat's projects, skills, or experience..."
                         }
-                    </div>
+                        className={styles.messageInput}
+                        rows="1"
+                    />
+                    <button
+                        onClick={handleSendMessage}
+                        disabled={!inputMessage.trim()}
+                        className={styles.sendButton}
+                    >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" />
+                        </svg>
+                    </button>
                 </div>
             </div>
         </div>
+    );
+};
+
+const Chatbot = () => {
+    return (
+        <Suspense fallback={
+            <div className={styles.container}>
+                <div className={styles.header}>
+                    <h1>WajahatBot 🤖</h1>
+                    <p>Loading...</p>
+                </div>
+                <div className={styles.chatContainer}>
+                    <div className={styles.messages}>
+                        <div className={`${styles.message} ${styles.ai}`}>
+                            <div className={styles.messageContent}>
+                                <div className={styles.messageText}>Loading chatbot...</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }>
+            <ChatbotContent />
+        </Suspense>
     );
 };
 

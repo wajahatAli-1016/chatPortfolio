@@ -5,7 +5,6 @@ import styles from '../../contact/contact.module.css';
 import { useTranslation } from '../../../lib/i18n';
 import LanguageSwitcher from '../../components/LanguageSwitcher';
 
-
 const ContactPage = ({ params }) => {
   const locale = params?.locale || 'en';
   const { t } = useTranslation(locale);
