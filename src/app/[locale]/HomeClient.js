@@ -146,7 +146,7 @@ const HomeClient = ({ locale }) => {
               <span className={styles.statLabel}>{t('hero.stats.experience')}</span>
             </div>
             <div className={styles.stat}>
-              <span className={styles.statNumber}>{projects.length}</span>
+              <span className={styles.statNumber}>7</span>
               <span className={styles.statLabel}>{t('hero.stats.projects')}</span>
             </div>
             <div className={styles.stat}>
