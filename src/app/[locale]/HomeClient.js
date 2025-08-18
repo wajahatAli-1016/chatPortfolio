@@ -165,9 +165,13 @@ const HomeClient = ({ locale }) => {
               <span className={styles.statLabel}>{t('hero.stats.experience')}</span>
             </div>
             <div className={styles.stat}>
+<<<<<<< HEAD
               <span className={styles.statNumber}>
                 {displayProjectCount !== null ? displayProjectCount : (loading ? '—' : projects.length)}
               </span>
+=======
+              <span className={styles.statNumber}>7</span>
+>>>>>>> 084fd51d513eb689dcfb6f917b31fddd42cfcc2e
               <span className={styles.statLabel}>{t('hero.stats.projects')}</span>
             </div>
             <div className={styles.stat}>
