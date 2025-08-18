@@ -17,6 +17,7 @@ const HomeClient = ({ locale }) => {
   const [error, setError] = useState(null);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isMobile, setIsMobile] = useState(false);
+  const [displayProjectCount, setDisplayProjectCount] = useState(null);
 
   // Check screen size on mount and resize
   useEffect(() => {
@@ -28,6 +29,19 @@ const HomeClient = ({ locale }) => {
     window.addEventListener('resize', checkScreenSize);
 
     return () => window.removeEventListener('resize', checkScreenSize);
+  }, []);
+
+  // Load last known project count to avoid showing 0 during initial loading
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const stored = window.localStorage.getItem('projectCount');
+      if (stored !== null) {
+        const parsed = parseInt(stored, 10);
+        if (!Number.isNaN(parsed)) {
+          setDisplayProjectCount(parsed);
+        }
+      }
+    }
   }, []);
 
   // Reset current slide when screen size changes
@@ -53,6 +67,11 @@ const HomeClient = ({ locale }) => {
       
       if (data.success) {
         setProjects(data.data);
+        const count = Array.isArray(data.data) ? data.data.length : 0;
+        setDisplayProjectCount(count);
+        if (typeof window !== 'undefined') {
+          window.localStorage.setItem('projectCount', String(count));
+        }
       } else {
         setError(t('projects.error'));
       }
@@ -146,7 +165,9 @@ const HomeClient = ({ locale }) => {
               <span className={styles.statLabel}>{t('hero.stats.experience')}</span>
             </div>
             <div className={styles.stat}>
-              <span className={styles.statNumber}>5</span>
+              <span className={styles.statNumber}>
+                {displayProjectCount !== null ? displayProjectCount : (loading ? '—' : projects.length)}
+              </span>
               <span className={styles.statLabel}>{t('hero.stats.projects')}</span>
             </div>
             <div className={styles.stat}>
@@ -331,6 +352,10 @@ const HomeClient = ({ locale }) => {
                             e.target.src = '/placeholder-project.png'; // Fallback image
                           }}
                         />
+                        {/* Hover overlay */}
+                        <div className={styles.projectOverlay}>
+                          <span className={styles.projectOverlayText}>Click to view project</span>
+                        </div>
                         <div className={styles.projectContent}>
                           <h4>{project.name}</h4>
                           <p>{project.description}</p>

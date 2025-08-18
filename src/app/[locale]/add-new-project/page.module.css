@@ -2,9 +2,9 @@
 
 .container {
   min-height: 100vh;
-  background: radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
-              radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.3) 0%, transparent 50%),
-              radial-gradient(circle at 40% 40%, rgba(120, 219, 255, 0.2) 0%, transparent 50%);
+  background: radial-gradient(circle at 20% 80%, #7877c64d 0%, transparent 50%),
+              radial-gradient(circle at 80% 20%, #ff77c64d 0%, transparent 50%),
+              radial-gradient(circle at 40% 40%, #78dbff33 0%, transparent 50%);
   padding: 120px 24px 60px;
   position: relative;
   overflow: hidden;
